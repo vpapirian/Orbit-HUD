@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "id": "orbithud",
+  "version": "${version}",
+  "name": "Orbit HUD",
+  "description": "A PvP-style HUD: keystrokes, CPS, minimap, boss & mob health bars, and a Right Shift mod menu with color customization.",
+  "authors": ["Vatche Papirian"],
+  "contact": {
+    "homepage": "https://github.com/vpapirian"
+  },
+  "license": "MIT",
+  "environment": "client",
+  "entrypoints": {
+    "client": ["com.vpapirian.orbithud.OrbitHud"]
+  },
+  "mixins": ["orbithud.mixins.json"],
+  "depends": {
+    "fabricloader": ">=0.16.0",
+    "minecraft": "~1.21.1",
+    "java": ">=21",
+    "fabric-api": "*"
+  }
+}
