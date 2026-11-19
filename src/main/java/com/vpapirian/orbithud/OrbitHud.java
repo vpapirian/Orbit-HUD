@@ -4,6 +4,8 @@ import com.vpapirian.orbithud.config.HudConfig;
 import com.vpapirian.orbithud.gui.HudEditorScreen;
 import com.vpapirian.orbithud.gui.ModMenuScreen;
 import com.vpapirian.orbithud.hud.ModuleManager;
+import com.vpapirian.orbithud.hud.modules.ComboModule;
+import com.vpapirian.orbithud.hud.modules.ReachModule;
 import com.vpapirian.orbithud.hud.modules.TargetHealthModule;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
@@ -58,7 +60,11 @@ public class OrbitHud implements ClientModInitializer {
 		});
 
 		AttackEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
-			if (world.isClient) TargetHealthModule.onAttack(entity);
+			if (world.isClient) {
+				TargetHealthModule.onAttack(entity);
+				ComboModule.onAttack(entity);
+				ReachModule.onAttack(player, entity);
+			}
 			return ActionResult.PASS;
 		});
 

@@ -21,6 +21,10 @@ public final class ModuleManager {
 		MODULES.add(new FpsModule());
 		MODULES.add(new PingModule());
 		MODULES.add(new CoordsModule());
+		MODULES.add(new ComboModule());
+		MODULES.add(new ReachModule());
+		MODULES.add(new ClockModule());
+		MODULES.add(new MemoryModule());
 		MODULES.add(new MinimapModule());
 		MODULES.add(new ArmorModule());
 		MODULES.add(new PotionModule());
