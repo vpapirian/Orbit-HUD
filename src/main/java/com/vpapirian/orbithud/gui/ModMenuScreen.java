@@ -367,8 +367,16 @@ public class ModMenuScreen extends Screen {
 			this.h = h;
 		}
 
+		/** Hover amount, 0 to 1, advanced once per rendered frame. */
+		private float hoverT;
+
 		boolean hover(double mx, double my) {
 			return mx >= x && mx < x + w && my >= y && my < y + h;
+		}
+
+		float animateHover(boolean over) {
+			hoverT = Anim.approach(hoverT, over ? 1f : 0f, frameSeconds, 10f);
+			return hoverT;
 		}
 
 		abstract void render(DrawContext ctx, int mx, int my);
@@ -395,8 +403,9 @@ public class ModMenuScreen extends Screen {
 		@Override
 		void render(DrawContext ctx, int mx, int my) {
 			boolean on = active.getAsBoolean();
-			int bg = on ? OrbitHud.accent : hover(mx, my) ? 0xFF33333D : 0xFF26262E;
-			ctx.fill(x, y, x + w, y + h, bg);
+			float ht = animateHover(hover(mx, my));
+			int bg = on ? OrbitHud.accent : Anim.lerpColor(0xFF26262E, 0xFF33333D, ht);
+			Draw.roundedRect(ctx, x, y, x + w, y + h, OrbitHud.cornerRadius, bg);
 			String s = textRenderer.trimToWidth(label, w - 4);
 			ctx.drawText(textRenderer, s, x + (w - textRenderer.getWidth(s)) / 2, y + (h - 8) / 2,
 					on ? 0xFFFFFFFF : 0xFFDDDDDD, false);
