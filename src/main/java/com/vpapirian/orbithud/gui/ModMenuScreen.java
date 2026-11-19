@@ -2,6 +2,7 @@ package com.vpapirian.orbithud.gui;
 
 import com.vpapirian.orbithud.OrbitHud;
 import com.vpapirian.orbithud.config.HudConfig;
+import com.vpapirian.orbithud.hud.Anim;
 import com.vpapirian.orbithud.hud.ColorUtil;
 import com.vpapirian.orbithud.hud.HudModule;
 import com.vpapirian.orbithud.hud.ModuleManager;
@@ -11,7 +12,9 @@ import net.minecraft.text.Text;
 import net.minecraft.util.math.MathHelper;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.BooleanSupplier;
 import java.util.function.DoubleConsumer;
 import java.util.function.DoubleSupplier;
@@ -43,6 +46,11 @@ public class ModMenuScreen extends Screen {
 	private int colorTab; // 0 = text, 1 = background
 	private final List<Control> controls = new ArrayList<>();
 	private Control dragging;
+
+	/** Hover amount per card, 0 to 1, so cards fade between their normal and hover colors. */
+	private final Map<Object, Float> hoverAmount = new HashMap<>();
+	private long lastFrameNanos;
+	private float frameSeconds;
 
 	public ModMenuScreen() {
 		super(Text.literal("Orbit HUD"));
@@ -181,6 +189,9 @@ public class ModMenuScreen extends Screen {
 	public void render(DrawContext ctx, int mouseX, int mouseY, float delta) {
 		super.render(ctx, mouseX, mouseY, delta);
 		int accent = OrbitHud.accent;
+		long now = System.nanoTime();
+		frameSeconds = lastFrameNanos == 0 ? 0f : Math.min(0.1f, (now - lastFrameNanos) / 1_000_000_000f);
+		lastFrameNanos = now;
 
 		int radius = panelRadius();
 		Draw.shadow(ctx, px, py, px + pw, py + ph, radius, 4);
@@ -229,8 +240,12 @@ public class ModMenuScreen extends Screen {
 			if (cy + CARD_H < ly || cy > ly + lh) continue;
 
 			boolean hover = inList(mouseX, mouseY) && mouseX >= cx && mouseX < cx + cw && mouseY >= cy && mouseY < cy + CARD_H;
-			ctx.fill(cx, cy, cx + cw, cy + CARD_H, hover ? CARD_HOVER : CARD_BG);
-			if (e == selected) ctx.drawBorder(cx, cy, cw, CARD_H, accent);
+			float h = Anim.approach(hoverAmount.getOrDefault(e, 0f), hover ? 1f : 0f, frameSeconds, 8f);
+			hoverAmount.put(e, h);
+			int cardColor = Anim.lerpColor(CARD_BG, CARD_HOVER, h);
+			int radius = OrbitHud.cornerRadius;
+			if (e == selected) Draw.roundedBordered(ctx, cx, cy, cx + cw, cy + CARD_H, radius, accent, cardColor);
+			else Draw.roundedRect(ctx, cx, cy, cx + cw, cy + CARD_H, radius, cardColor);
 
 			String name = e instanceof HudModule m ? m.name : "Theme";
 			name = textRenderer.trimToWidth(name, cw - 6);
@@ -238,12 +253,12 @@ public class ModMenuScreen extends Screen {
 
 			int stripY = cy + CARD_H - 14;
 			if (e instanceof HudModule m) {
-				ctx.fill(cx + 3, stripY, cx + cw - 3, stripY + 11, m.enabled ? accent : OFF);
+				Draw.roundedRect(ctx, cx + 3, stripY, cx + cw - 3, stripY + 11, radius, m.enabled ? accent : OFF);
 				String s = m.enabled ? "ENABLED" : "DISABLED";
 				ctx.drawText(textRenderer, s, cx + (cw - textRenderer.getWidth(s)) / 2, stripY + 2,
 						m.enabled ? 0xFFFFFFFF : MUTED, false);
 			} else {
-				ctx.fill(cx + 3, stripY, cx + cw - 3, stripY + 11, OFF);
+				Draw.roundedRect(ctx, cx + 3, stripY, cx + cw - 3, stripY + 11, radius, OFF);
 				String s = "COLORS";
 				ctx.drawText(textRenderer, s, cx + (cw - textRenderer.getWidth(s)) / 2, stripY + 2, accent, false);
 			}
