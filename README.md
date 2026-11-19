@@ -7,6 +7,7 @@ A client-side Fabric mod for Minecraft 1.21.1 with a PvP-style HUD and a Right S
 - **Keystrokes**: W/A/S/D, LMB/RMB with live CPS, and the space bar. Labels follow your keybinds.
 - **CPS counter**: exact clicks per second, counted from raw mouse input (not tick-limited).
 - **FPS, Ping, and Coordinates** (with facing direction).
+- **Combo** (consecutive hits landed, reset when you're hit), **Reach** (distance of your last hit), **Clock** (12/24-hour, optional seconds) and **Memory** (JVM usage). All are display-only.
 - **Minimap**: top-down terrain map with vanilla map colors and a rotating player arrow.
 - **Mob Health**: health bar for the mob you're looking at, or the last one you hit, with a gradient and absorption.
 - **Boss Health**: restyled, movable boss bars. Can hide the vanilla ones.
@@ -39,6 +40,8 @@ hud/HudModule.java       base class: position, scale, colors, chroma, flags
 hud/TextModule.java      single-line text modules
 hud/ModuleManager.java   module list, render loop, clamping/centering
 hud/CpsTracker.java      1-second sliding window of clicks
+hud/ComboTracker.java    hit-streak logic (unit tested)
+hud/ReachMath.java       eye-to-hitbox distance (unit tested)
 hud/modules/*            each HUD element
 gui/ModMenuScreen.java   Right Shift menu (cards, sliders, toggles)
 gui/HudEditorScreen.java drag/scale layout editor
