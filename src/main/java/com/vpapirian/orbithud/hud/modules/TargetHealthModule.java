@@ -1,5 +1,8 @@
 package com.vpapirian.orbithud.hud.modules;
 
+import com.vpapirian.orbithud.OrbitHud;
+import com.vpapirian.orbithud.gui.Draw;
+import com.vpapirian.orbithud.hud.Anim;
 import com.vpapirian.orbithud.hud.ColorUtil;
 import com.vpapirian.orbithud.hud.HudModule;
 import net.minecraft.client.font.TextRenderer;
@@ -50,7 +53,7 @@ public class TargetHealthModule extends HudModule {
 		float frac = hp / max;
 
 		TextRenderer tr = mc.textRenderer;
-		ctx.fill(0, 0, width, height, backgroundColor);
+		Draw.roundedRect(ctx, 0, 0, width, height, OrbitHud.cornerRadius, backgroundColor);
 
 		String hpText = String.format("%.1f ❤", hp + absorption);
 		int hpColor = flag("Health gradient") ? ColorUtil.health(frac) : color();
@@ -59,8 +62,10 @@ public class TargetHealthModule extends HudModule {
 		ctx.drawText(tr, hpText, width - 5 - tr.getWidth(hpText), 5, hpColor, true);
 
 		int barX = 5, barY = 18, barW = width - 10, barH = 6;
-		ctx.fill(barX, barY, barX + barW, barY + barH, 0xFF2A2A2A);
-		ctx.fill(barX, barY, barX + Math.round(barW * Math.min(1f, frac)), barY + barH, hpColor);
+		int barRadius = Math.min(OrbitHud.cornerRadius, barH / 2);
+		Draw.roundedRect(ctx, barX, barY, barX + barW, barY + barH, barRadius, 0xFF2A2A2A);
+		int fillW = Math.round(barW * Math.min(1f, frac));
+		if (fillW > 0) Draw.roundedRect(ctx, barX, barY, barX + fillW, barY + barH, barRadius, hpColor);
 		if (absorption > 0) {
 			int absW = Math.round(barW * Math.min(1f, absorption / max));
 			ctx.fill(barX, barY, barX + absW, barY + 2, 0xFFFFCC33);
