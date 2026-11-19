@@ -1,32 +1,24 @@
 package com.vpapirian.orbithud.hud;
 
-import java.util.ArrayDeque;
-import java.util.Deque;
-
 /** Counts clicks in the last second. Fed by MouseMixin. */
 public final class CpsTracker {
-	private static final Deque<Long> LEFT = new ArrayDeque<>();
-	private static final Deque<Long> RIGHT = new ArrayDeque<>();
+	private static final long WINDOW_MS = 1000L;
+	private static final ClickWindow LEFT = new ClickWindow(WINDOW_MS);
+	private static final ClickWindow RIGHT = new ClickWindow(WINDOW_MS);
 
 	private CpsTracker() {}
 
 	public static void click(int button) {
 		long now = System.currentTimeMillis();
-		if (button == 0) LEFT.addLast(now);
-		else if (button == 1) RIGHT.addLast(now);
+		if (button == 0) LEFT.record(now);
+		else if (button == 1) RIGHT.record(now);
 	}
 
 	public static int left() {
-		return count(LEFT);
+		return LEFT.count(System.currentTimeMillis());
 	}
 
 	public static int right() {
-		return count(RIGHT);
-	}
-
-	private static int count(Deque<Long> clicks) {
-		long cutoff = System.currentTimeMillis() - 1000L;
-		while (!clicks.isEmpty() && clicks.peekFirst() < cutoff) clicks.pollFirst();
-		return clicks.size();
+		return RIGHT.count(System.currentTimeMillis());
 	}
 }
