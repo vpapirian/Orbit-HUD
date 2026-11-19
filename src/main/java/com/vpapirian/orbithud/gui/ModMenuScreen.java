@@ -182,8 +182,14 @@ public class ModMenuScreen extends Screen {
 		super.render(ctx, mouseX, mouseY, delta);
 		int accent = OrbitHud.accent;
 
-		ctx.fill(px, py, px + pw, py + ph, PANEL_BG);
-		ctx.fill(px, py, px + pw, py + 2, accent);
+		int radius = panelRadius();
+		Draw.shadow(ctx, px, py, px + pw, py + ph, radius, 4);
+		Draw.roundedRect(ctx, px, py, px + pw, py + ph, radius, PANEL_BG);
+		// Accent strip along the top edge, following the rounded corners.
+		for (int row = 0; row < 2; row++) {
+			int inset = Draw.cornerInset(Math.min(radius, Math.min(pw, ph) / 2), row);
+			ctx.fill(px + inset, py + row, px + pw - inset, py + row + 1, accent);
+		}
 		ctx.drawText(textRenderer, "ORBIT HUD", px + 9, py + 10, accent, false);
 		String hint = "Right Shift to close";
 		ctx.drawText(textRenderer, hint, px + pw - 9 - textRenderer.getWidth(hint), py + 10, MUTED, false);
@@ -191,7 +197,7 @@ public class ModMenuScreen extends Screen {
 		renderCards(ctx, mouseX, mouseY, accent);
 
 		// Settings panel
-		ctx.fill(sx, sy, sx + SETTINGS_W, sy + sh, 0xFF18181F);
+		Draw.roundedRect(ctx, sx, sy, sx + SETTINGS_W, sy + sh, OrbitHud.cornerRadius, 0xFF18181F);
 		String title = selected instanceof HudModule m ? m.name : "Theme";
 		ctx.drawText(textRenderer, title, sx + 8, sy + 7, 0xFFFFFFFF, false);
 		int swatch = currentSwatch();
@@ -199,6 +205,11 @@ public class ModMenuScreen extends Screen {
 		ctx.fill(sx + SETTINGS_W - 19, sy + 6, sx + SETTINGS_W - 9, sy + 14, swatch);
 
 		for (Control c : controls) c.render(ctx, mouseX, mouseY);
+	}
+
+	/** The menu is bigger than a HUD module, so its corners are a little rounder. */
+	private static int panelRadius() {
+		return OrbitHud.cornerRadius == 0 ? 0 : OrbitHud.cornerRadius + 2;
 	}
 
 	private int currentSwatch() {
