@@ -35,6 +35,8 @@ public final class HudConfig {
 
 	static class Data {
 		int accent;
+		// -1 means "not saved yet" (older config files), so the default radius is kept.
+		int cornerRadius = -1;
 		Map<String, ModuleData> modules = new LinkedHashMap<>();
 	}
 
@@ -45,6 +47,7 @@ public final class HudConfig {
 			Data data = GSON.fromJson(reader, Data.class);
 			if (data == null) return;
 			if (data.accent != 0) OrbitHud.accent = data.accent;
+			if (data.cornerRadius >= 0) OrbitHud.cornerRadius = Math.min(data.cornerRadius, 8);
 			if (data.modules == null) return;
 
 			for (HudModule m : ModuleManager.MODULES) {
@@ -71,6 +74,7 @@ public final class HudConfig {
 	public static void save() {
 		Data data = new Data();
 		data.accent = OrbitHud.accent;
+		data.cornerRadius = OrbitHud.cornerRadius;
 		for (HudModule m : ModuleManager.MODULES) {
 			ModuleData md = new ModuleData();
 			md.enabled = m.enabled;
