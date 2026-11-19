@@ -18,6 +18,11 @@ public class TargetHealthModule extends HudModule {
 	private static LivingEntity lastHit;
 	private static long lastHitTime;
 
+	/** Bar fill that eases toward the real health, so damage and healing slide instead of jumping. */
+	private LivingEntity shownFor;
+	private float shownFrac;
+	private long lastFrameNanos;
+
 	public TargetHealthModule() {
 		super("target", "Mob Health", CENTER, CENTER);
 		width = W;
@@ -52,6 +57,16 @@ public class TargetHealthModule extends HudModule {
 		float absorption = t == null ? 0f : t.getAbsorptionAmount();
 		float frac = hp / max;
 
+		long now = System.nanoTime();
+		float dt = lastFrameNanos == 0 ? 0f : Math.min(0.1f, (now - lastFrameNanos) / 1_000_000_000f);
+		lastFrameNanos = now;
+		if (t != shownFor) {
+			shownFor = t;
+			shownFrac = frac; // a new target starts at its real health
+		} else {
+			shownFrac = Anim.approach(shownFrac, frac, dt, 1.5f);
+		}
+
 		TextRenderer tr = mc.textRenderer;
 		Draw.roundedRect(ctx, 0, 0, width, height, OrbitHud.cornerRadius, backgroundColor);
 
@@ -64,7 +79,7 @@ public class TargetHealthModule extends HudModule {
 		int barX = 5, barY = 18, barW = width - 10, barH = 6;
 		int barRadius = Math.min(OrbitHud.cornerRadius, barH / 2);
 		Draw.roundedRect(ctx, barX, barY, barX + barW, barY + barH, barRadius, 0xFF2A2A2A);
-		int fillW = Math.round(barW * Math.min(1f, frac));
+		int fillW = Math.round(barW * Math.min(1f, shownFrac));
 		if (fillW > 0) Draw.roundedRect(ctx, barX, barY, barX + fillW, barY + barH, barRadius, hpColor);
 		if (absorption > 0) {
 			int absW = Math.round(barW * Math.min(1f, absorption / max));
