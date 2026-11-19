@@ -1,5 +1,7 @@
 package com.vpapirian.orbithud.hud;
 
+import com.vpapirian.orbithud.OrbitHud;
+import com.vpapirian.orbithud.gui.Draw;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.util.math.MatrixStack;
@@ -85,6 +87,6 @@ public abstract class HudModule {
 	}
 
 	protected void drawBackground(DrawContext ctx) {
-		if (!flag("Hide background")) ctx.fill(0, 0, width, height, backgroundColor);
+		if (!flag("Hide background")) Draw.roundedRect(ctx, 0, 0, width, height, OrbitHud.cornerRadius, backgroundColor);
 	}
 }
