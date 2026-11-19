@@ -28,6 +28,9 @@ public class OrbitHud implements ClientModInitializer {
 	/** Accent color used by the mod menu and editor (ARGB). */
 	public static int accent = 0xFF7C5CFF;
 
+	/** Corner radius in pixels for HUD panels and the menu. 0 gives square corners. */
+	public static int cornerRadius = 3;
+
 	public static KeyBinding menuKey;
 
 	@Override

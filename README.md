@@ -12,7 +12,8 @@ A client-side Fabric mod for Minecraft 1.21.1 with a PvP-style HUD and a Right S
 - **Mob Health**: health bar for the mob you're looking at, or the last one you hit, with a gradient and absorption.
 - **Boss Health**: restyled, movable boss bars. Can hide the vanilla ones.
 - **Armor Status** (with colored durability) and **Potion Effects** (with icons and timers).
-- **Mod menu (Right Shift)**: toggle modules, edit text and background colors with RGBA sliders, chroma (rainbow) mode, scale, and per-module options. A **Theme** card sets the menu accent and can apply colors to every module at once.
+- **Mod menu (Right Shift)**: toggle modules, edit text and background colors with RGBA sliders, chroma (rainbow) mode, scale, and per-module options. A **Theme** card sets the menu accent and corner radius and can apply colors to every module at once.
+- **Smooth, rounded look**: rounded panels, keystrokes that fade in and out, a mob health bar that slides to the new value, and a menu with hover fades and sliding switches. The corner radius goes from 0 (square) to 8.
 - **Layout editor**: drag modules to move them, scroll over one to resize it. Snaps to screen edges and center.
 - Everything is saved to `config/orbithud.json`.
 
@@ -42,6 +43,8 @@ hud/ModuleManager.java   module list, render loop, clamping/centering
 hud/CpsTracker.java      1-second sliding window of clicks
 hud/ComboTracker.java    hit-streak logic (unit tested)
 hud/ReachMath.java       eye-to-hitbox distance (unit tested)
+hud/Anim.java            easing and color blending helpers (unit tested)
+gui/Draw.java            rounded rectangles, borders and shadows
 hud/modules/*            each HUD element
 gui/ModMenuScreen.java   Right Shift menu (cards, sliders, toggles)
 gui/HudEditorScreen.java drag/scale layout editor

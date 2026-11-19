@@ -1,5 +1,7 @@
 package com.vpapirian.orbithud.hud.modules;
 
+import com.vpapirian.orbithud.OrbitHud;
+import com.vpapirian.orbithud.gui.Draw;
 import com.vpapirian.orbithud.hud.ColorUtil;
 import com.vpapirian.orbithud.hud.HudModule;
 import com.vpapirian.orbithud.mixin.BossBarHudAccessor;
@@ -54,7 +56,10 @@ public class BossBarModule extends HudModule {
 			if (rgb != null) fill = 0xFF000000 | rgb;
 		}
 		int barY = y + 10;
-		ctx.fill(0, barY, W, barY + 5, ColorUtil.withAlpha(backgroundColor, Math.max(0x90, ColorUtil.channel(backgroundColor, 24))));
-		ctx.fill(0, barY, Math.round(W * percent), barY + 5, fill);
+		int barRadius = Math.min(OrbitHud.cornerRadius, 2);
+		Draw.roundedRect(ctx, 0, barY, W, barY + 5, barRadius,
+				ColorUtil.withAlpha(backgroundColor, Math.max(0x90, ColorUtil.channel(backgroundColor, 24))));
+		int fillW = Math.round(W * percent);
+		if (fillW > 0) Draw.roundedRect(ctx, 0, barY, fillW, barY + 5, barRadius, fill);
 	}
 }

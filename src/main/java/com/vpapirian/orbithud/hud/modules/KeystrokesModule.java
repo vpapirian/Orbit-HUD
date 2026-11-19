@@ -1,5 +1,8 @@
 package com.vpapirian.orbithud.hud.modules;
 
+import com.vpapirian.orbithud.OrbitHud;
+import com.vpapirian.orbithud.gui.Draw;
+import com.vpapirian.orbithud.hud.Anim;
 import com.vpapirian.orbithud.hud.ColorUtil;
 import com.vpapirian.orbithud.hud.CpsTracker;
 import com.vpapirian.orbithud.hud.HudModule;
@@ -8,10 +11,20 @@ import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.option.GameOptions;
 import net.minecraft.client.option.KeyBinding;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class KeystrokesModule extends HudModule {
 	private static final int KEY = 22;
 	private static final int GAP = 2;
 	private static final int FULL = KEY * 3 + GAP * 2;
+	/** Full press/release transitions per second, so a key fades in about 80 ms. */
+	private static final float FADE_RATE = 12f;
+
+	/** How pressed each key looks right now, 0 (released) to 1 (pressed). */
+	private final Map<Object, Float> press = new HashMap<>();
+	private long lastFrameNanos;
+	private float frameSeconds;
 
 	public KeystrokesModule() {
 		super("keystrokes", "Keystrokes", 4, 4);
@@ -24,6 +37,9 @@ public class KeystrokesModule extends HudModule {
 	@Override
 	protected void render(DrawContext ctx, boolean preview) {
 		GameOptions o = mc.options;
+		long now = System.nanoTime();
+		frameSeconds = lastFrameNanos == 0 ? 0f : Math.min(0.1f, (now - lastFrameNanos) / 1_000_000_000f);
+		lastFrameNanos = now;
 		int y = 0;
 
 		key(ctx, o.forwardKey, KEY + GAP, y, KEY, KEY);
@@ -43,7 +59,7 @@ public class KeystrokesModule extends HudModule {
 
 		if (flag("Show space")) {
 			y += GAP;
-			int fg = box(ctx, 0, y, FULL, 11, o.jumpKey.isPressed());
+			int fg = box(ctx, "space", 0, y, FULL, 11, o.jumpKey.isPressed());
 			ctx.fill(FULL / 2 - 12, y + 5, FULL / 2 + 12, y + 6, fg);
 			y += 11;
 		}
@@ -53,14 +69,16 @@ public class KeystrokesModule extends HudModule {
 	}
 
 	/** Fills a key box and returns the color to draw its label in. */
-	private int box(DrawContext ctx, int x, int y, int w, int h, boolean pressed) {
-		int bg = pressed ? ColorUtil.withAlpha(color(), 0xD0) : backgroundColor;
-		ctx.fill(x, y, x + w, y + h, bg);
-		return pressed ? 0xFF111111 : color();
+	private int box(DrawContext ctx, Object id, int x, int y, int w, int h, boolean pressed) {
+		float t = Anim.approach(press.getOrDefault(id, 0f), pressed ? 1f : 0f, frameSeconds, FADE_RATE);
+		press.put(id, t);
+		int bg = Anim.lerpColor(backgroundColor, ColorUtil.withAlpha(color(), 0xD0), t);
+		Draw.roundedRect(ctx, x, y, x + w, y + h, OrbitHud.cornerRadius, bg);
+		return Anim.lerpColor(color(), 0xFF111111, t);
 	}
 
 	private void key(DrawContext ctx, KeyBinding binding, int x, int y, int w, int h) {
-		int fg = box(ctx, x, y, w, h, binding.isPressed());
+		int fg = box(ctx, binding, x, y, w, h, binding.isPressed());
 		String label = binding.getBoundKeyLocalizedText().getString().toUpperCase();
 		if (label.length() > 3) label = label.substring(0, 3);
 		TextRenderer tr = mc.textRenderer;
@@ -68,7 +86,7 @@ public class KeystrokesModule extends HudModule {
 	}
 
 	private void mouseKey(DrawContext ctx, String label, int cps, boolean pressed, int x, int y, int w) {
-		int fg = box(ctx, x, y, w, KEY, pressed);
+		int fg = box(ctx, label, x, y, w, KEY, pressed);
 		TextRenderer tr = mc.textRenderer;
 		boolean shadow = flag("Text shadow");
 		if (!flag("Show CPS")) {

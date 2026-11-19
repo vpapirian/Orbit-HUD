@@ -2,6 +2,7 @@ package com.vpapirian.orbithud.gui;
 
 import com.vpapirian.orbithud.OrbitHud;
 import com.vpapirian.orbithud.config.HudConfig;
+import com.vpapirian.orbithud.hud.Anim;
 import com.vpapirian.orbithud.hud.ColorUtil;
 import com.vpapirian.orbithud.hud.HudModule;
 import com.vpapirian.orbithud.hud.ModuleManager;
@@ -11,7 +12,9 @@ import net.minecraft.text.Text;
 import net.minecraft.util.math.MathHelper;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.BooleanSupplier;
 import java.util.function.DoubleConsumer;
 import java.util.function.DoubleSupplier;
@@ -43,6 +46,11 @@ public class ModMenuScreen extends Screen {
 	private int colorTab; // 0 = text, 1 = background
 	private final List<Control> controls = new ArrayList<>();
 	private Control dragging;
+
+	/** Hover amount per card, 0 to 1, so cards fade between their normal and hover colors. */
+	private final Map<Object, Float> hoverAmount = new HashMap<>();
+	private long lastFrameNanos;
+	private float frameSeconds;
 
 	public ModMenuScreen() {
 		super(Text.literal("Orbit HUD"));
@@ -127,6 +135,9 @@ public class ModMenuScreen extends Screen {
 			y += 2;
 			y = addColorSliders(x, y, w, () -> OrbitHud.accent, c -> OrbitHud.accent = ColorUtil.withAlpha(c, 0xFF));
 			y += 4;
+			controls.add(new Slider(x, y, w, "Corner radius", 0, 8, () -> OrbitHud.cornerRadius,
+					v -> OrbitHud.cornerRadius = (int) Math.round(v), v -> String.valueOf((int) Math.round(v))));
+			y += 19;
 			controls.add(new Button(x, y, w, 14, "Apply as text color", () -> false, () -> {
 				for (HudModule mod : ModuleManager.MODULES) mod.textColor = OrbitHud.accent;
 			}));
@@ -181,9 +192,18 @@ public class ModMenuScreen extends Screen {
 	public void render(DrawContext ctx, int mouseX, int mouseY, float delta) {
 		super.render(ctx, mouseX, mouseY, delta);
 		int accent = OrbitHud.accent;
+		long now = System.nanoTime();
+		frameSeconds = lastFrameNanos == 0 ? 0f : Math.min(0.1f, (now - lastFrameNanos) / 1_000_000_000f);
+		lastFrameNanos = now;
 
-		ctx.fill(px, py, px + pw, py + ph, PANEL_BG);
-		ctx.fill(px, py, px + pw, py + 2, accent);
+		int radius = panelRadius();
+		Draw.shadow(ctx, px, py, px + pw, py + ph, radius, 4);
+		Draw.roundedRect(ctx, px, py, px + pw, py + ph, radius, PANEL_BG);
+		// Accent strip along the top edge, following the rounded corners.
+		for (int row = 0; row < 2; row++) {
+			int inset = Draw.cornerInset(Math.min(radius, Math.min(pw, ph) / 2), row);
+			ctx.fill(px + inset, py + row, px + pw - inset, py + row + 1, accent);
+		}
 		ctx.drawText(textRenderer, "ORBIT HUD", px + 9, py + 10, accent, false);
 		String hint = "Right Shift to close";
 		ctx.drawText(textRenderer, hint, px + pw - 9 - textRenderer.getWidth(hint), py + 10, MUTED, false);
@@ -191,7 +211,7 @@ public class ModMenuScreen extends Screen {
 		renderCards(ctx, mouseX, mouseY, accent);
 
 		// Settings panel
-		ctx.fill(sx, sy, sx + SETTINGS_W, sy + sh, 0xFF18181F);
+		Draw.roundedRect(ctx, sx, sy, sx + SETTINGS_W, sy + sh, OrbitHud.cornerRadius, 0xFF18181F);
 		String title = selected instanceof HudModule m ? m.name : "Theme";
 		ctx.drawText(textRenderer, title, sx + 8, sy + 7, 0xFFFFFFFF, false);
 		int swatch = currentSwatch();
@@ -199,6 +219,11 @@ public class ModMenuScreen extends Screen {
 		ctx.fill(sx + SETTINGS_W - 19, sy + 6, sx + SETTINGS_W - 9, sy + 14, swatch);
 
 		for (Control c : controls) c.render(ctx, mouseX, mouseY);
+	}
+
+	/** The menu is bigger than a HUD module, so its corners are a little rounder. */
+	private static int panelRadius() {
+		return OrbitHud.cornerRadius == 0 ? 0 : OrbitHud.cornerRadius + 2;
 	}
 
 	private int currentSwatch() {
@@ -218,8 +243,12 @@ public class ModMenuScreen extends Screen {
 			if (cy + CARD_H < ly || cy > ly + lh) continue;
 
 			boolean hover = inList(mouseX, mouseY) && mouseX >= cx && mouseX < cx + cw && mouseY >= cy && mouseY < cy + CARD_H;
-			ctx.fill(cx, cy, cx + cw, cy + CARD_H, hover ? CARD_HOVER : CARD_BG);
-			if (e == selected) ctx.drawBorder(cx, cy, cw, CARD_H, accent);
+			float h = Anim.approach(hoverAmount.getOrDefault(e, 0f), hover ? 1f : 0f, frameSeconds, 8f);
+			hoverAmount.put(e, h);
+			int cardColor = Anim.lerpColor(CARD_BG, CARD_HOVER, h);
+			int radius = OrbitHud.cornerRadius;
+			if (e == selected) Draw.roundedBordered(ctx, cx, cy, cx + cw, cy + CARD_H, radius, accent, cardColor);
+			else Draw.roundedRect(ctx, cx, cy, cx + cw, cy + CARD_H, radius, cardColor);
 
 			String name = e instanceof HudModule m ? m.name : "Theme";
 			name = textRenderer.trimToWidth(name, cw - 6);
@@ -227,12 +256,12 @@ public class ModMenuScreen extends Screen {
 
 			int stripY = cy + CARD_H - 14;
 			if (e instanceof HudModule m) {
-				ctx.fill(cx + 3, stripY, cx + cw - 3, stripY + 11, m.enabled ? accent : OFF);
+				Draw.roundedRect(ctx, cx + 3, stripY, cx + cw - 3, stripY + 11, radius, m.enabled ? accent : OFF);
 				String s = m.enabled ? "ENABLED" : "DISABLED";
 				ctx.drawText(textRenderer, s, cx + (cw - textRenderer.getWidth(s)) / 2, stripY + 2,
 						m.enabled ? 0xFFFFFFFF : MUTED, false);
 			} else {
-				ctx.fill(cx + 3, stripY, cx + cw - 3, stripY + 11, OFF);
+				Draw.roundedRect(ctx, cx + 3, stripY, cx + cw - 3, stripY + 11, radius, OFF);
 				String s = "COLORS";
 				ctx.drawText(textRenderer, s, cx + (cw - textRenderer.getWidth(s)) / 2, stripY + 2, accent, false);
 			}
@@ -341,8 +370,16 @@ public class ModMenuScreen extends Screen {
 			this.h = h;
 		}
 
+		/** Hover amount, 0 to 1, advanced once per rendered frame. */
+		private float hoverT;
+
 		boolean hover(double mx, double my) {
 			return mx >= x && mx < x + w && my >= y && my < y + h;
+		}
+
+		float animateHover(boolean over) {
+			hoverT = Anim.approach(hoverT, over ? 1f : 0f, frameSeconds, 10f);
+			return hoverT;
 		}
 
 		abstract void render(DrawContext ctx, int mx, int my);
@@ -369,8 +406,9 @@ public class ModMenuScreen extends Screen {
 		@Override
 		void render(DrawContext ctx, int mx, int my) {
 			boolean on = active.getAsBoolean();
-			int bg = on ? OrbitHud.accent : hover(mx, my) ? 0xFF33333D : 0xFF26262E;
-			ctx.fill(x, y, x + w, y + h, bg);
+			float ht = animateHover(hover(mx, my));
+			int bg = on ? OrbitHud.accent : Anim.lerpColor(0xFF26262E, 0xFF33333D, ht);
+			Draw.roundedRect(ctx, x, y, x + w, y + h, OrbitHud.cornerRadius, bg);
 			String s = textRenderer.trimToWidth(label, w - 4);
 			ctx.drawText(textRenderer, s, x + (w - textRenderer.getWidth(s)) / 2, y + (h - 8) / 2,
 					on ? 0xFFFFFFFF : 0xFFDDDDDD, false);
@@ -387,6 +425,8 @@ public class ModMenuScreen extends Screen {
 		final String label;
 		final BooleanSupplier get;
 		final Runnable flip;
+		/** How far the switch has slid toward "on", 0 to 1. */
+		private float slide = Float.NaN;
 
 		Toggle(int x, int y, int w, String label, BooleanSupplier get, Runnable flip) {
 			super(x, y, w, 12);
@@ -398,12 +438,16 @@ public class ModMenuScreen extends Screen {
 		@Override
 		void render(DrawContext ctx, int mx, int my) {
 			boolean on = get.getAsBoolean();
+			float target = on ? 1f : 0f;
+			// Start at the real state so a freshly built menu doesn't animate every switch.
+			slide = Float.isNaN(slide) ? target : Anim.approach(slide, target, frameSeconds, 8f);
+			float ht = animateHover(hover(mx, my));
 			ctx.drawText(textRenderer, textRenderer.trimToWidth(label, w - 24), x, y + 2,
-					hover(mx, my) ? 0xFFFFFFFF : 0xFFCCCCCC, false);
+					Anim.lerpColor(0xFFCCCCCC, 0xFFFFFFFF, ht), false);
 			int tx = x + w - 18;
-			ctx.fill(tx, y + 2, tx + 18, y + 10, on ? OrbitHud.accent : OFF);
-			int knob = on ? tx + 11 : tx + 1;
-			ctx.fill(knob, y + 3, knob + 6, y + 9, 0xFFFFFFFF);
+			Draw.roundedRect(ctx, tx, y + 2, tx + 18, y + 10, 4, Anim.lerpColor(OFF, OrbitHud.accent, slide));
+			int knob = tx + 1 + Math.round(10 * slide);
+			Draw.roundedRect(ctx, knob, y + 3, knob + 6, y + 9, 3, 0xFFFFFFFF);
 		}
 
 		@Override
@@ -455,7 +499,7 @@ public class ModMenuScreen extends Screen {
 			ctx.fill(x, ty, x + w, ty + 3, 0xFF2E2E38);
 			ctx.fill(x, ty, filled, ty + 3, trackColor);
 			int knobX = MathHelper.clamp(filled - 2, x, x + w - 4);
-			ctx.fill(knobX, ty - 2, knobX + 4, ty + 5, 0xFFFFFFFF);
+			Draw.roundedRect(ctx, knobX, ty - 2, knobX + 4, ty + 5, 2, 0xFFFFFFFF);
 		}
 
 		@Override
