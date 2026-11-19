@@ -422,6 +422,8 @@ public class ModMenuScreen extends Screen {
 		final String label;
 		final BooleanSupplier get;
 		final Runnable flip;
+		/** How far the switch has slid toward "on", 0 to 1. */
+		private float slide = Float.NaN;
 
 		Toggle(int x, int y, int w, String label, BooleanSupplier get, Runnable flip) {
 			super(x, y, w, 12);
@@ -433,12 +435,16 @@ public class ModMenuScreen extends Screen {
 		@Override
 		void render(DrawContext ctx, int mx, int my) {
 			boolean on = get.getAsBoolean();
+			float target = on ? 1f : 0f;
+			// Start at the real state so a freshly built menu doesn't animate every switch.
+			slide = Float.isNaN(slide) ? target : Anim.approach(slide, target, frameSeconds, 8f);
+			float ht = animateHover(hover(mx, my));
 			ctx.drawText(textRenderer, textRenderer.trimToWidth(label, w - 24), x, y + 2,
-					hover(mx, my) ? 0xFFFFFFFF : 0xFFCCCCCC, false);
+					Anim.lerpColor(0xFFCCCCCC, 0xFFFFFFFF, ht), false);
 			int tx = x + w - 18;
-			ctx.fill(tx, y + 2, tx + 18, y + 10, on ? OrbitHud.accent : OFF);
-			int knob = on ? tx + 11 : tx + 1;
-			ctx.fill(knob, y + 3, knob + 6, y + 9, 0xFFFFFFFF);
+			Draw.roundedRect(ctx, tx, y + 2, tx + 18, y + 10, 4, Anim.lerpColor(OFF, OrbitHud.accent, slide));
+			int knob = tx + 1 + Math.round(10 * slide);
+			Draw.roundedRect(ctx, knob, y + 3, knob + 6, y + 9, 3, 0xFFFFFFFF);
 		}
 
 		@Override
@@ -490,7 +496,7 @@ public class ModMenuScreen extends Screen {
 			ctx.fill(x, ty, x + w, ty + 3, 0xFF2E2E38);
 			ctx.fill(x, ty, filled, ty + 3, trackColor);
 			int knobX = MathHelper.clamp(filled - 2, x, x + w - 4);
-			ctx.fill(knobX, ty - 2, knobX + 4, ty + 5, 0xFFFFFFFF);
+			Draw.roundedRect(ctx, knobX, ty - 2, knobX + 4, ty + 5, 2, 0xFFFFFFFF);
 		}
 
 		@Override
