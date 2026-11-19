@@ -135,6 +135,9 @@ public class ModMenuScreen extends Screen {
 			y += 2;
 			y = addColorSliders(x, y, w, () -> OrbitHud.accent, c -> OrbitHud.accent = ColorUtil.withAlpha(c, 0xFF));
 			y += 4;
+			controls.add(new Slider(x, y, w, "Corner radius", 0, 8, () -> OrbitHud.cornerRadius,
+					v -> OrbitHud.cornerRadius = (int) Math.round(v), v -> String.valueOf((int) Math.round(v))));
+			y += 19;
 			controls.add(new Button(x, y, w, 14, "Apply as text color", () -> false, () -> {
 				for (HudModule mod : ModuleManager.MODULES) mod.textColor = OrbitHud.accent;
 			}));
